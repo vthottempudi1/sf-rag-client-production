@@ -1,0 +1,20 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Venu Thottempudi",email = "vthottempudi1@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "uvicorn (>=0.38.0,<0.39.0)",
+    "fastapi (>=0.125.0,<0.126.0)",
+    "supabase (>=2.27.0,<3.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
