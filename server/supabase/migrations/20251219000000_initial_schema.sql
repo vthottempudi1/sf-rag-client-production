@@ -15,7 +15,7 @@ CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     description TEXT,
-    clerk_id TEXT NOT NULL REFERENCES users(clerk_id) ON DELETE CASCADE,
+    clerk_id TEXT REFERENCES users(clerk_id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
