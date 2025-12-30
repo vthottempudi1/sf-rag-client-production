@@ -16,7 +16,7 @@ import {
   Info,
 } from "lucide-react";
 import { ProjectSettings, ProjectDocument } from "@/lib/types";
-import { JSX, useState } from "react";
+import { useState, useEffect } from "react";
 
 // Constants
 const STRATEGY_OPTIONS = [
@@ -64,80 +64,74 @@ const AGENT_MODE_OPTIONS = [
 ];
 
 // Utility functions
-const documentUtils = {
-  formatFileSize: (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  },
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+};
 
-  formatTimeAgo: (dateString: string) => {
-    const diffInHours = Math.floor(
-      (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60)
-    );
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    return diffInDays < 7
-      ? `${diffInDays}d ago`
-      : new Date(dateString).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        });
-  },
+const formatTimeAgo = (dateString: string) => {
+  const diffInHours = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60)
+  );
+  if (diffInHours < 1) return "Just now";
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return diffInDays < 7
+    ? `${diffInDays}d ago`
+    : new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+};
 
-  getIcon: (doc: ProjectDocument) => {
-    if (doc.source_url) return <Globe size={14} className="text-gray-400" />;
-    const type = doc.file_type.toLowerCase();
-    if (type.includes("pdf"))
-      return <FileText size={14} className="text-gray-400" />;
-    if (type.includes("ppt") || type.includes("presentation"))
-      return <Presentation size={14} className="text-gray-400" />;
-    if (type.includes("word") || type.includes("document"))
-      return <File size={14} className="text-gray-400" />;
+const getDocumentIcon = (doc: ProjectDocument) => {
+  if (doc.source_url) return <Globe size={14} className="text-gray-400" />;
+  const type = doc.file_type.toLowerCase();
+  if (type.includes("pdf"))
     return <FileText size={14} className="text-gray-400" />;
-  },
+  if (type.includes("ppt") || type.includes("presentation"))
+    return <Presentation size={14} className="text-gray-400" />;
+  if (type.includes("word") || type.includes("document"))
+    return <File size={14} className="text-gray-400" />;
+  return <FileText size={14} className="text-gray-400" />;
+};
 
-  getDisplayName: (doc: ProjectDocument) => {
-    if (!doc.source_url) return doc.filename;
-    try {
-      const url = new URL(doc.source_url);
-      return `${url.hostname}${url.pathname}`;
-    } catch {
-      return doc.source_url;
-    }
-  },
+const getDisplayName = (doc: ProjectDocument) => {
+  if (!doc.source_url) return doc.filename;
+  try {
+    const url = new URL(doc.source_url);
+    return `${url.hostname}${url.pathname}`;
+  } catch {
+    return doc.source_url;
+  }
+};
 
-  getSize: (doc: ProjectDocument) =>
-    doc.source_url ? "Website" : documentUtils.formatFileSize(doc.file_size),
+const getDocumentSize = (doc: ProjectDocument) =>
+  doc.source_url ? "Website" : formatFileSize(doc.file_size);
 
-  getStatusIcon: (status: string) => {
-    const icons: { [key: string]: JSX.Element } = {
-      completed: <CheckCircle size={12} className="text-gray-400" />,
-      failed: <AlertCircle size={12} className="text-gray-400" />,
-    };
-    return (
-      icons[status] || (
-        <Loader2 size={12} className="text-gray-400 animate-spin" />
-      )
-    );
-  },
+const getStatusIcon = (status: string) => {
+  if (status === "completed")
+    return <CheckCircle size={12} className="text-gray-400" />;
+  if (status === "failed")
+    return <AlertCircle size={12} className="text-gray-400" />;
+  return <Loader2 size={12} className="text-gray-400 animate-spin" />;
+};
 
-  getStatusText: (status: string) => {
-    const texts: { [key: string]: string } = {
-      uploading: "Uploading",
-      queued: "Queued",
-      partitioning: "Processing",
-      chunking: "Chunking",
-      summarising: "Summarising",
-      vectorization: "Vectorizing",
-      completed: "Ready",
-      failed: "Failed",
-    };
-    return texts[status] || "Unknown";
-  },
+const getStatusText = (status: string) => {
+  const texts: { [key: string]: string } = {
+    uploading: "Uploading",
+    queued: "Queued",
+    partitioning: "Processing",
+    chunking: "Chunking",
+    summarising: "Summarising",
+    vectorization: "Vectorizing",
+    completed: "Ready",
+    failed: "Failed",
+  };
+  return texts[status] || "Unknown";
 };
 
 // Reusable Components
@@ -249,6 +243,20 @@ export function KnowledgeBaseSidebar({
   const [urlInput, setUrlInput] = useState("");
   const [isAddingUrl, setIsAddingUrl] = useState(false);
 
+  // Defensive check for duplicate IDs
+  useEffect(() => {
+    if (projectDocuments.length > 0) {
+      const ids = projectDocuments.map((doc) => doc.id);
+      const uniqueIds = new Set(ids);
+      if (ids.length !== uniqueIds.size) {
+        console.error(
+          "⚠️ WARNING: Duplicate document IDs detected!",
+          projectDocuments
+        );
+      }
+    }
+  }, [projectDocuments]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDocumentUpload,
     accept: {
@@ -282,7 +290,6 @@ export function KnowledgeBaseSidebar({
   const getPerformanceMetrics = () => {
     if (!projectSettings) return { totalChunks: 0, latency: 0 };
 
-    // Simple lookup table
     const strategyConfig = {
       basic: { latency: 400 },
       hybrid: { latency: 600 },
@@ -290,13 +297,11 @@ export function KnowledgeBaseSidebar({
       "multi-query-hybrid": { latency: 1000 },
     }[projectSettings.rag_strategy] || { latency: 400 };
 
-    // Calculate chunks
     const isMultiQuery = projectSettings.rag_strategy.includes("multi-query");
     const totalChunks =
       projectSettings.chunks_per_search *
       (isMultiQuery ? projectSettings.number_of_queries : 1);
 
-    // Calculate latency
     const baseLatency = strategyConfig.latency;
     const queryLatency = isMultiQuery
       ? projectSettings.number_of_queries * 200
@@ -311,6 +316,12 @@ export function KnowledgeBaseSidebar({
   const isMultiQuery = projectSettings?.rag_strategy?.includes("multi-query");
   const isHybrid = projectSettings?.rag_strategy?.includes("hybrid");
   const isEmbeddingLocked = projectDocuments.length > 0;
+
+  // Sort documents once
+  const sortedDocuments = [...projectDocuments].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   return (
     <div className="w-80 bg-[#1a1a1a] border border-gray-700 h-full flex flex-col rounded-xl">
@@ -335,47 +346,45 @@ export function KnowledgeBaseSidebar({
 
       {/* Tabs */}
       <div className="flex border-b border-gray-700 bg-[#1e1e1e]">
-        {[
-          {
-            id: "documents",
-            icon: FileText,
-            label: "Documents",
-            badge: projectDocuments.length,
-          },
-          {
-            id: "settings",
-            icon: Settings,
-            label: "Settings",
-            error: settingsError,
-          },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onSetActiveTab(tab.id as "documents" | "settings")}
-            className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-all duration-200 flex items-center justify-center gap-2 ${
-              activeTab === tab.id
-                ? "border-blue-400 text-blue-400 bg-blue-500/5"
-                : "border-transparent text-gray-400 hover:text-gray-300 hover:bg-[#2a2a2a]"
-            }`}
-          >
-            <tab.icon size={14} />
-            <span>{tab.label}</span>
-            {tab.badge !== undefined && tab.badge > 0 && (
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.id
-                    ? "bg-blue-400/20 text-blue-300"
-                    : "bg-gray-600 text-gray-400"
-                }`}
-              >
-                {tab.badge}
-              </span>
-            )}
-            {tab.error && (
-              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-            )}
-          </button>
-        ))}
+        <button
+          key="documents"
+          onClick={() => onSetActiveTab("documents")}
+          className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-all duration-200 flex items-center justify-center gap-2 ${
+            activeTab === "documents"
+              ? "border-blue-400 text-blue-400 bg-blue-500/5"
+              : "border-transparent text-gray-400 hover:text-gray-300 hover:bg-[#2a2a2a]"
+          }`}
+        >
+          <FileText size={14} />
+          <span>Documents</span>
+          {projectDocuments.length > 0 && (
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded-full ${
+                activeTab === "documents"
+                  ? "bg-blue-400/20 text-blue-300"
+                  : "bg-gray-600 text-gray-400"
+              }`}
+            >
+              {projectDocuments.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          key="settings"
+          onClick={() => onSetActiveTab("settings")}
+          className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-all duration-200 flex items-center justify-center gap-2 ${
+            activeTab === "settings"
+              ? "border-blue-400 text-blue-400 bg-blue-500/5"
+              : "border-transparent text-gray-400 hover:text-gray-300 hover:bg-[#2a2a2a]"
+          }`}
+        >
+          <Settings size={14} />
+          <span>Settings</span>
+          {settingsError && (
+            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+          )}
+        </button>
       </div>
 
       {/* Content */}
@@ -482,64 +491,52 @@ export function KnowledgeBaseSidebar({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {projectDocuments
-                    .sort(
-                      (a, b) =>
-                        new Date(b.created_at).getTime() -
-                        new Date(a.created_at).getTime()
-                    )
-                    .map((doc) => (
-                      <div
-                        key={doc.id}
-                        onClick={() => onOpenDocument(doc.id)}
-                        className="group bg-[#202020] hover:bg-[#252525] border border-gray-800 hover:border-gray-700 rounded-lg p-3 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex-shrink-0 w-7 h-7 bg-[#252525] border border-gray-700 rounded-md flex items-center justify-center">
-                            {documentUtils.getIcon(doc)}
+                  {sortedDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      onClick={() => onOpenDocument(doc.id)}
+                      className="group bg-[#202020] hover:bg-[#252525] border border-gray-800 hover:border-gray-700 rounded-lg p-3 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-7 h-7 bg-[#252525] border border-gray-700 rounded-md flex items-center justify-center">
+                          {getDocumentIcon(doc)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="text-sm font-medium text-gray-200 truncate group-hover:text-white transition-colors">
+                              {getDisplayName(doc)}
+                            </h4>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDocumentDelete(doc.id);
+                              }}
+                              className="p-1 text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a] rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                              title="Delete source"
+                            >
+                              <Trash2 size={12} />
+                            </button>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <h4 className="text-sm font-medium text-gray-200 truncate group-hover:text-white transition-colors">
-                                {documentUtils.getDisplayName(doc)}
-                              </h4>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDocumentDelete(doc.id);
-                                }}
-                                className="p-1 text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a] rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                                title="Delete source"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>{getDocumentSize(doc)}</span>
+                              <span>•</span>
+                              <span>{formatTimeAgo(doc.created_at)}</span>
                             </div>
-                            <div className="flex items-center justify-between mt-1">
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span>{documentUtils.getSize(doc)}</span>
-                                <span>•</span>
-                                <span>
-                                  {documentUtils.formatTimeAgo(doc.created_at)}
-                                </span>
-                              </div>
-                              {doc.processing_status &&
-                                doc.processing_status !== "completed" && (
-                                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                                    {documentUtils.getStatusIcon(
-                                      doc.processing_status
-                                    )}
-                                    <span>
-                                      {documentUtils.getStatusText(
-                                        doc.processing_status
-                                      )}
-                                    </span>
-                                  </div>
-                                )}
-                            </div>
+                            {doc.processing_status &&
+                              doc.processing_status !== "completed" && (
+                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                  {getStatusIcon(doc.processing_status)}
+                                  <span>
+                                    {getStatusText(doc.processing_status)}
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               )}
             </section>

@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-from routers import users, projects
-
+from routers import projects, users, files, chats
+from database import supabase
 load_dotenv()
 
 
@@ -21,7 +21,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Next.js default port
-        "http://localhost:3001",  # Alternative port
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -31,6 +30,8 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(projects.router)
+app.include_router(files.router)
+app.include_router(chats.router)
 
 
 @app.get("/")

@@ -42,9 +42,14 @@ export function MessageList({
     scrollToBottom();
   }, [messages, streamingMessage]);
 
+  // SAFETY: Filter out any invalid messages before rendering
+  const validMessages = messages.filter(
+    (message) => message && message.id && message.role && message.content
+  );
+
   return (
     <div className="flex-1 overflow-y-auto bg-[#1a1a1a]">
-      {messages.length === 0 && !isStreaming && !isLoading ? (
+      {validMessages.length === 0 && !isStreaming && !isLoading ? (
         <div className="flex items-center justify-center h-full">
           <div className="text-center text-gray-400 max-w-md mx-auto px-6">
             <div className="w-12 h-12 bg-[#252525] border border-gray-700 rounded-lg mx-auto mb-6 flex items-center justify-center">
@@ -62,7 +67,7 @@ export function MessageList({
       ) : (
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="space-y-8">
-            {messages.map((message) => (
+            {validMessages.map((message) => (
               <div key={message.id} className="group">
                 <MessageItem message={message} onFeedback={onFeedback} />
 

@@ -61,8 +61,8 @@ export function ChatInterface({
   return (
     <div className="h-screen bg-[#0d1117] p-4">
       <div className="flex flex-col h-full bg-[#1a1a1a] text-white rounded-xl overflow-hidden">
-        {/* Header */}
-        {projectId && (
+        {/* Header - Show if we have a chat OR projectId */}
+        {(chat || projectId) && (
           <div className="border-b border-gray-800 bg-[#1a1a1a] sticky top-0 z-10">
             <div className="max-w-4xl mx-auto px-6 py-4">
               <div className="flex items-center gap-3">
@@ -73,8 +73,19 @@ export function ChatInterface({
 
                 {/* Chat Info */}
                 <div className="flex-1 min-w-0">
-                  <h1 className="font-medium text-gray-200 text-sm truncate">
-                    {chat?.title || "New Chat"}
+                  <h1 className="font-medium text-gray-200 text-sm truncate flex items-center gap-2">
+                    {chat ? (
+                      <>
+                        {chat.title || `Chat #${chat.id}`}
+                        {chat.title && (
+                          <span className="ml-2 text-xs text-gray-400">
+                            #{chat.id}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>New Chat</>
+                    )}
                   </h1>
                   <p className="text-xs text-gray-400">Project Chat</p>
                 </div>

@@ -77,44 +77,55 @@ function ProjectsPage () {
   }, [userId]);
 
   const handleCreateProject = async (name: string, description: string) => {
+    setError(null);
+    setIsCreating(true);
     try {
-      setError(null)
-      setIsCreating(true);
       const token = await getToken();
+      if (!token) {
+        toast.error("Authentication failed. Please sign in again.");
+        setIsCreating(false);
+        return;
+      }
       const result = await apiClient.post(
         "/api/projects",
-        { name,
-          description
-        },
+        { name, description },
         token
       );
 
-      // apiClient wraps response in {data: ...}
-      // backend returns {message: "...", data: project}
-      // so we need result.data.data
-      const savedProject = (result?.data as any)?.data || {}
-      
-      // Only add project if it has an ID
-      if (savedProject && savedProject.id) {
+      // Try to extract the project from multiple possible response shapes
+      let savedProject = undefined;
+      if (result?.data?.data && typeof result.data.data === 'object') {
+        savedProject = result.data.data;
+      } else if (result?.data && typeof result.data === 'object') {
+        savedProject = result.data;
+      } else if (result && typeof result === 'object') {
+        savedProject = result;
+      }
+
+      if (savedProject && typeof savedProject === 'object' && savedProject.id) {
         setProjects((prev) => [savedProject, ...prev]);
         setShowCreateModal(false);
         toast.success("Project created successfully!");
       } else {
-        console.error("Created project missing ID:", savedProject);
-        toast.error("Project created but missing ID. Please refresh.");
+        // Provide more detailed error logging for debugging
+        console.error("Project creation response missing ID.", {
+          savedProject,
+          result,
+          idType: typeof savedProject?.id,
+          keys: savedProject ? Object.keys(savedProject) : null
+        });
+        toast.error("Project created but missing ID. Please refresh or contact support.");
       }
-
-    } catch (err) {
-
-      toast.error("Failed to create project.");
+    } catch (err: any) {
+      if (err?.response?.data?.detail) {
+        toast.error(`Failed to create project: ${err.response.data.detail}`);
+      } else {
+        toast.error("Failed to create project. Please try again later.");
+      }
       console.error("Error creating project:", err);
     } finally {
       setIsCreating(false);
-      
     }
-
-
-
   };
   
   const handleDeleteProject = async (projectId: string) => {

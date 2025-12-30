@@ -92,7 +92,7 @@ CREATE TABLE messages (
 
 -- Indexes
 CREATE INDEX document_chunks_fts_idx ON document_chunks USING gin (fts);
-CREATE INDEX document_chunks_embedding_hnsw_idx ON document_chunks USING hnsw (embedding vector_ip_ops);
+CREATE INDEX document_chunks_embedding_hnsw_idx ON document_chunks USING hnsw (embedding vector_cosine_ops);
 
 -- Enable Row Level Security on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

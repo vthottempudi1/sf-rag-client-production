@@ -10,6 +10,7 @@ export interface ApiResponse<T> {
   status: number;
 }
 
+
 class ApiClient {
   private baseUrl: string;
 
@@ -17,18 +18,25 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  // Accepts token as an optional last argument
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    token?: string
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
       ...options,
+      headers,
     };
 
     try {
@@ -54,26 +62,26 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'GET' }, token);
   }
 
-  async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: unknown, token?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
-    });
+    }, token);
   }
 
-  async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body?: unknown, token?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(body),
-    });
+    }, token);
   }
 
-  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' }, token);
   }
 }
 

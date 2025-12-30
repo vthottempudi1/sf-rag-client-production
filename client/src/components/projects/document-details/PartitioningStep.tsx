@@ -26,12 +26,11 @@ export function PartitioningStep({
     );
   }
 
+  // ...existing code...
+
   return (
     <div className="p-8">
       <div className="max-w-2xl mx-auto text-center">
-        {/* <div className="w-16 h-16 mx-auto mb-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center">
-          <CheckCircle className="w-16 h-16 text-green-400" />
-        </div> */}
         <h3 className="text-xl font-medium text-gray-100 mb-2">Partitioning</h3>
         <p className="text-gray-400 mb-6">
           Processing and extracting text, images, and tables
@@ -51,14 +50,14 @@ export function PartitioningStep({
                 >
                   <span className="text-gray-300">
                     {key === "text"
-                      ? " Text sections"
+                      ? "Text sections"
                       : key === "tables"
-                      ? " Tables"
+                      ? "Tables"
                       : key === "images"
-                      ? " Images"
+                      ? "Images"
                       : key === "titles"
-                      ? " Titles/Headers"
-                      : " Other elements"}
+                      ? "Titles/Headers"
+                      : key.charAt(0).toUpperCase() + key.slice(1)}
                   </span>
                   <span className="font-medium text-gray-100">{value}</span>
                 </div>

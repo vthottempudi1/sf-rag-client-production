@@ -86,6 +86,10 @@ export function FileDetailsModal({ document, onClose }: FileDetailsModalProps) {
     if (!document?.project_id || !document?.id || !userId) return;
 
     const token = await getToken();
+    if (!token) {
+      setChunks([]);
+      return;
+    }
 
     try {
       setChunksLoading(true);
@@ -94,15 +98,17 @@ export function FileDetailsModal({ document, onClose }: FileDetailsModalProps) {
         token
       );
 
-      const chunks = result.data.map((chunk: any) => ({
-        id: chunk.id,
-        type: chunk.type,
-        content: chunk.content,
-        original_content: chunk.original_content,
-        page: chunk.page_number,
-        chunkIndex: chunk.chunk_index,
-        chars: chunk.char_count,
-      }));
+      const chunks = Array.isArray(result.data)
+        ? result.data.map((chunk: any) => ({
+            id: chunk.id,
+            type: chunk.type,
+            content: chunk.content,
+            original_content: chunk.original_content,
+            page: chunk.page_number,
+            chunkIndex: chunk.chunk_index,
+            chars: chunk.char_count,
+          }))
+        : [];
 
       setChunks(chunks);
     } catch (error) {
