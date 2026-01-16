@@ -122,11 +122,12 @@ function ProjectsPage() {
     }
   }, [userId]);
 
-  const filteredProjects = (projects || []).filter(
-    (project) =>
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProjects = (projects || []).filter((project) => {
+    const name = (project?.name ?? "").toLowerCase();
+    const description = (project?.description ?? "").toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return name.includes(query) || description.includes(query);
+  });
 
   if (loading) {
     return <LoadingSpinner message="Loading projects..." />;
