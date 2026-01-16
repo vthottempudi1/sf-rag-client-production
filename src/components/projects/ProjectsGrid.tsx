@@ -28,6 +28,15 @@ export function ProjectsGrid({
   onCreateProject,
   onDeleteProject,
 }: ProjectsGridProps) {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const visibleProjects = normalizedQuery
+    ? projects.filter((project) => {
+        const name = (project?.name ?? "").toLowerCase();
+        const description = (project?.description ?? "").toLowerCase();
+        return name.includes(normalizedQuery) || description.includes(normalizedQuery);
+      })
+    : projects;
+
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white">
       {/* Header */}
@@ -40,7 +49,7 @@ export function ProjectsGrid({
                 Projects
               </h1>
               <p className="text-gray-400 text-sm mt-1">
-                {projects.length} project{projects.length !== 1 ? "s" : ""}
+                {visibleProjects.length} project{visibleProjects.length !== 1 ? "s" : ""}
               </p>
             </div>
 
@@ -113,7 +122,7 @@ export function ProjectsGrid({
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {projects.length === 0 ? (
+        {visibleProjects.length === 0 ? (
           <div className="text-center py-20">
             {searchQuery ? (
               // No search results
@@ -167,7 +176,7 @@ export function ProjectsGrid({
 
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {projects.map((project) => (
+                  {visibleProjects.map((project) => (
                     <div
                       key={project.id}
                       onClick={() => onProjectClick(project.id)}
@@ -214,7 +223,7 @@ export function ProjectsGrid({
               ) : (
                 // List View
                 <div className="space-y-2">
-                  {projects.map((project) => (
+                  {visibleProjects.map((project) => (
                     <div
                       key={project.id}
                       onClick={() => onProjectClick(project.id)}
