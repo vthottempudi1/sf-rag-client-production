@@ -14,8 +14,14 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
-      await onSendMessage(message.trim());
+      const toSend = message.trim();
       setMessage("");
+      try {
+        await onSendMessage(toSend);
+      } catch (err) {
+        // On failure, restore the text so the user doesn’t lose it
+        setMessage(toSend);
+      }
     }
   };
 

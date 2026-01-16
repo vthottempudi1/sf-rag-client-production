@@ -166,17 +166,17 @@ function ProjectPage({ params }: ProjectPageProps) {
 
       const savedChat = result.data;
 
-      router.push(`/projects/${projectId}/chats/${savedChat.id}`);
-
-      // Update local state
-      setData((prev) => ({
-        ...prev,
-        chats: [savedChat, ...prev.chats],
-      }))
-
-      toast.success("Chat Created successfully!");
+      if (savedChat && savedChat.id) {
+        router.push(`/projects/${projectId}/chats/${savedChat.id}`);
+        setData((prev) => ({
+          ...prev,
+          chats: [savedChat, ...prev.chats],
+        }));
+        toast.success("Chat Created successfully!");
+      } else {
+        toast.error("Failed to create chat: No chat ID returned.");
+      }
     } catch (err) {
-      // Optionally handle error here
       toast.error("Failed to create chat.");
     } finally {
       setIsCreatingChat(false);

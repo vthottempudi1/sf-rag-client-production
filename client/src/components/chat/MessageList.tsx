@@ -47,6 +47,22 @@ export function MessageList({
     (message) => message && message.id && message.role && message.content
   );
 
+  // Show streaming text as an in-flight assistant message bubble
+  const displayMessages = isStreaming && streamingMessage
+    ? [
+        ...validMessages,
+        {
+          id: "streaming",
+          content: streamingMessage,
+          role: "assistant" as const,
+          created_at: new Date().toISOString(),
+          chat_id: "",
+          clerk_id: "",
+          citations: [],
+        },
+      ]
+    : validMessages;
+
   return (
     <div className="flex-1 overflow-y-auto bg-[#1a1a1a]">
       {validMessages.length === 0 && !isStreaming && !isLoading ? (
@@ -67,7 +83,7 @@ export function MessageList({
       ) : (
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="space-y-8">
-            {validMessages.map((message) => (
+            {displayMessages.map((message) => (
               <div key={message.id} className="group">
                 <MessageItem message={message} onFeedback={onFeedback} />
 
@@ -124,33 +140,21 @@ export function MessageList({
               </div>
             ))}
 
-            {/* Streaming Message */}
-            {isStreaming && streamingMessage && (
-              <div className="group">
-                <div className="flex justify-start">
-                  <div className="bg-[#202020] border border-gray-800 rounded-lg p-4 max-w-[85%]">
-                    <p className="whitespace-pre-wrap text-gray-200 leading-relaxed text-sm">
-                      {streamingMessage}
-                    </p>
-
-                    {/* Typing Indicator */}
-                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-800">
-                      <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.1s" }}
-                        ></div>
-                        <div
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.2s" }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-gray-400 ml-2">
-                        AI is thinking...
-                      </span>
+            {/* Streaming status bubble (stays in chat body, not input) */}
+            {isStreaming && (
+              <div className="flex justify-start">
+                <div className="bg-[#202020] border border-gray-800 rounded-lg p-4 max-w-[85%]">
+                  {agentStatus ? (
+                    <div className="flex items-center gap-3 text-sm text-gray-300">
+                      <Loader2 size={16} className="text-gray-400 animate-spin" />
+                      <span>{agentStatus}</span>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3 text-sm text-gray-300">
+                      <Loader2 size={16} className="text-gray-400 animate-spin" />
+                      <span>Generating response...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

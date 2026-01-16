@@ -26,9 +26,27 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
+    // Normalize headers to a plain object of strings
+    const normalizedHeaders: Record<string, string> = {};
+    const incoming = options.headers;
+
+    if (incoming instanceof Headers) {
+      incoming.forEach((value, key) => {
+        normalizedHeaders[key] = value;
+      });
+    } else if (Array.isArray(incoming)) {
+      incoming.forEach(([key, value]) => {
+        normalizedHeaders[key] = value as string;
+      });
+    } else if (incoming && typeof incoming === "object") {
+      Object.entries(incoming).forEach(([key, value]) => {
+        normalizedHeaders[key] = String(value);
+      });
+    }
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...normalizedHeaders,
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -37,6 +55,8 @@ class ApiClient {
     const config: RequestInit = {
       ...options,
       headers,
+      // Include cookies (e.g., Clerk __session) for cross-origin requests
+      credentials: 'include',
     };
 
     try {

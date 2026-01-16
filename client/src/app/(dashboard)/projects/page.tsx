@@ -21,6 +21,17 @@ interface Project {
 }
 
 function ProjectsPage () {
+  // JWT token
+  const { getToken, userId } = useAuth();
+
+  // Debug: Log Clerk JWT token to console
+  useEffect(() => {
+    async function fetchToken() {
+      const token = await getToken();
+      console.log("JWT token:", token); // This is the JWT you need!
+    }
+    fetchToken();
+  }, [getToken]);
   //Data state
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,8 +45,6 @@ function ProjectsPage () {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
-  // JWT token
-  const { getToken, userId } = useAuth();
   const router = useRouter();
 
   // Business logic functions
@@ -45,12 +54,20 @@ function ProjectsPage () {
       setLoading(true);
 
       const token = await getToken();
-      const result = await apiClient.get("/api/projects", token)
+      const result = await apiClient.get("/api/projects", token ?? undefined)
       
-      // apiClient wraps response in {data: ...}
-      // backend returns {message: "...", data: [...]}
-      // so we need result.data.data
-      const projectsData = (result?.data as any)?.data || [];
+      // Handle multiple possible response shapes
+      // - { data: [...] }
+      // - { message: "...", data: [...] }
+      // - direct array
+      const rawData = (result as any)?.data;
+      const projectsData = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData?.data)
+          ? rawData.data
+          : Array.isArray((result as any))
+            ? (result as any)
+            : [];
       
       // Filter out invalid projects without IDs
       const validProjects = Array.isArray(projectsData) 
@@ -91,15 +108,17 @@ function ProjectsPage () {
         { name, description },
         token
       );
+      console.log("Full backend response:", result);
 
       // Try to extract the project from multiple possible response shapes
       let savedProject = undefined;
-      if (result?.data?.data && typeof result.data.data === 'object') {
-        savedProject = result.data.data;
-      } else if (result?.data && typeof result.data === 'object') {
-        savedProject = result.data;
-      } else if (result && typeof result === 'object') {
-        savedProject = result;
+      const rawCreate = (result as any)?.data ?? result;
+      if (rawCreate?.project && typeof rawCreate.project === 'object') {
+        savedProject = rawCreate.project;
+      } else if (rawCreate?.data && typeof rawCreate.data === 'object') {
+        savedProject = rawCreate.data;
+      } else if (rawCreate && typeof rawCreate === 'object') {
+        savedProject = rawCreate;
       }
 
       if (savedProject && typeof savedProject === 'object' && savedProject.id) {
@@ -133,7 +152,7 @@ function ProjectsPage () {
       setError(null)
       const token = await getToken();
 
-      const result = await apiClient.delete(`/api/projects/${projectId}`, token);
+      const result = await apiClient.delete(`/api/projects/${projectId}`, token ?? undefined);
 
       setProjects((prev) => prev.filter((project) => project.id !== projectId));
 

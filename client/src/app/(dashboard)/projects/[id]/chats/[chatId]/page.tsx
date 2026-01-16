@@ -12,13 +12,14 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 interface ProjectChatPageProps {
   params: Promise<{
-    id: string;        // ← Changed from projectId to id (matches folder name)
+    id: string; // matches folder name
     chatId: string;
   }>;
 }
 
 export default function ProjectChatPage({ params }: ProjectChatPageProps) {
-  const { id: projectId, chatId } = use(params);  // ← Destructure 'id' and rename to projectId
+  // Unwrap async params (Next.js 16 Turbopack requirement)
+  const { id: projectId, chatId } = use(params);
 
   const [currentChatData, setCurrentChatData] =
     useState<ChatWithMessages | null>(null);
@@ -28,6 +29,9 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
 
   const [sendMessageError, setSendMessageError] = useState<string | null>(null);
   const [isMessageSending, setIsMessageSending] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
+  const [agentStatus, setAgentStatus] = useState<string | null>(null);
 
   const [feedbackModal, setFeedbackModal] = useState<{
     messageId: string;
@@ -36,41 +40,198 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
 
   const { getToken, userId } = useAuth();
 
-  // Send message function
-  const handleSendMessage = async (content: string) => {
+  const normalizeChatResponse = (apiResult: any) => {
+    if (apiResult?.data?.data) return apiResult.data.data;
+    if (apiResult?.data) return apiResult.data;
+    return apiResult;
+  };
+
+  const refreshChat = async () => {
+    try {
+      const token = await getToken();
+      const latest = await apiClient.get<ChatWithMessages>(
+        `/api/chats/${chatId}`,
+        token ?? undefined
+      );
+      const parsed = normalizeChatResponse(latest);
+      if (parsed?.id) {
+        setCurrentChatData(parsed as ChatWithMessages);
+        return parsed as ChatWithMessages;
+      }
+    } catch (err) {
+      console.warn("Failed to refresh chat:", err);
+    }
+    return null;
+  };
+
+  // Send message (streaming endpoint)
+const handleSendMessage = async (content: string) => {
     try {
       setSendMessageError(null);
       setIsMessageSending(true);
+      setIsStreaming(true);
+      setStreamingMessage(null);
+      setAgentStatus(null);
 
       if (!currentChatData || !userId) {
         setSendMessageError("Chat or user not found");
         return;
       }
 
-      // Send POST request to create message
+      // Optimistically add the user message
+      const optimisticUserMessage = {
+        id: `temp-${Date.now()}`,
+        chat_id: currentChatData.id,
+        content,
+        role: "user" as const,
+        clerk_id: userId,
+        created_at: new Date().toISOString(),
+        citations: [],
+      };
+      setCurrentChatData((prev) => {
+        if (!prev) return prev;
+        return { ...prev, messages: [...prev.messages, optimisticUserMessage] };
+      });
+
       const token = await getToken();
-      const response = await apiClient.post(
-        `/api/projects/${projectId}/chats/${currentChatData.id}/messages`,
-        { content },
-        token
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(
+        `${apiBase}/api/projects/${projectId}/chats/${currentChatData.id}/messages/stream?clerk_id=${encodeURIComponent(
+          userId
+        )}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({ content }),
+        }
       );
 
-      // Expecting response.data.data to contain both user message and AI response
-      const { userMessage, aiMessage } = response.data.data;
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to start streaming response");
+      }
 
-      // Update chat with both messages
-      setCurrentChatData((prev) => ({
-        ...prev!,
-        messages: [...prev!.messages, userMessage, aiMessage],
-      }));
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-      toast.success("Message sent");
+      const processEvent = (eventName: string, data: string) => {
+        if (!eventName) return;
+        if (eventName === "status") {
+          try {
+            const payload = JSON.parse(data);
+            if (payload.status) setAgentStatus(payload.status);
+          } catch (e) {
+            console.warn("Failed to parse status event", e);
+          }
+        } else if (eventName === "token") {
+          try {
+            const payload = JSON.parse(data);
+            if (payload.content) {
+              setStreamingMessage((prev) => (prev || "") + payload.content);
+            }
+          } catch (e) {
+            console.warn("Failed to parse token event", e);
+          }
+        } else if (eventName === "done") {
+          try {
+            const payload = JSON.parse(data);
+            console.log("[DEBUG] done event payload:", payload);
+            const userMessage = (payload as any).userMessage;
+            let aiMessage = (payload as any).aiMessage;
+            setCurrentChatData((prev) => {
+              if (!prev) return prev;
+              const filtered = prev.messages.filter(
+                (msg) => !msg.id.startsWith("temp-")
+              );
+              const updates = [];
+              if (userMessage) updates.push(userMessage);
+              // If aiMessage is missing but streamingMessage exists, add it as a message
+              if (!aiMessage && streamingMessage) {
+                aiMessage = {
+                  id: `ai-${Date.now()}`,
+                  chat_id: prev.id,
+                  content: streamingMessage,
+                  role: "assistant",
+                  clerk_id: "",
+                  created_at: new Date().toISOString(),
+                  citations: [],
+                };
+              }
+              if (aiMessage) updates.push(aiMessage);
+              if (!aiMessage && !streamingMessage) {
+                toast.error("No AI response received from server.");
+              }
+              return { ...prev, messages: [...filtered, ...updates] };
+            });
+            toast.success("Message sent");
+          } catch (e) {
+            console.warn("Failed to process done event", e);
+          } finally {
+            setIsStreaming(false);
+            setStreamingMessage(null);
+            setAgentStatus(null);
+          }
+        } else if (eventName === "error") {
+          try {
+            const payload = JSON.parse(data);
+            throw new Error(payload.message || "Streaming error");
+          } catch (e: any) {
+            throw e;
+          }
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+
+        const parts = buffer.split("\n");
+        buffer = parts.pop() || "";
+
+        let currentEvent = "";
+        for (const line of parts) {
+          if (!line.trim()) {
+            if (currentEvent) {
+              // Reset between events
+              currentEvent = "";
+            }
+            continue;
+          }
+          if (line.startsWith("event:")) {
+            currentEvent = line.replace("event:", "").trim();
+          } else if (line.startsWith("data:")) {
+            const data = line.replace("data:", "").trim();
+            processEvent(currentEvent, data);
+          }
+        }
+
+        if (done) break;
+      }
+
+      // Final refresh to sync with backend (ensures AI message is shown)
+      await refreshChat();
     } catch (err) {
       console.error("Failed to send message:", err);
       setSendMessageError("Failed to send message");
       toast.error("Failed to send message");
+      // Remove optimistic message on error
+      setCurrentChatData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.filter((msg) => !msg.id.startsWith("temp-")),
+        };
+      });
+      await refreshChat();
     } finally {
       setIsMessageSending(false);
+      setIsStreaming(false);
+      setAgentStatus(null);
     }
   };
 
@@ -96,7 +257,7 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
           comment: feedback.comment,
           category: feedback.category,
         },
-        token
+        token ?? undefined
       );
 
       toast.success("Thanks for your feedback!");
@@ -110,90 +271,23 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
 
   useEffect(() => {
     const loadChat = async () => {
-      if (!userId) {
-        console.log("Waiting for userId...");
-        return;
-      }
+      if (!userId) return;
 
-      console.log(`Loading chat ${chatId} for project ${projectId}...`);
       setIsLoadingChatData(true);
       setChatLoadError(null);
 
       try {
-        const token = await getToken();
-        
-        // Use the working endpoint
-        const result = await apiClient.get(`/api/chats/${chatId}`, token);
-        
-        console.log("Full API Response:", result);
-        console.log("Response data:", result.data);
-        
-        // Handle different response structures
-        let chatData;
-        
-        // Check if response has nested data property
-        if (result.data && result.data.data) {
-          console.log("Using nested data property");
-          chatData = result.data.data;
-        } else {
-          chatData = result.data;
-        }
-        
-        console.log("Extracted chat data:", chatData);
-        console.log("Chat data keys:", chatData ? Object.keys(chatData) : "null");
-
-        // Validate chat data exists and has required fields
-        // Database has: id, title, project_id, clerk_id, created_at, messages
+        const chatData = await refreshChat();
         if (!chatData) {
-          console.error("Chat data is null or undefined");
-          throw new Error("No chat data received from server");
+          throw new Error("Invalid chat data received");
         }
-        
-        // Check for id field (primary key from database)
-        if (!chatData.id) {
-          console.error("Chat data missing 'id' field:", chatData);
-          throw new Error("Invalid chat data: missing id");
-        }
-
-        console.log("Chat ID:", chatData.id);
-        console.log("Chat Title:", chatData.title);
-        console.log("Chat Project ID:", chatData.project_id);
-        console.log("URL Project ID:", projectId);
-        console.log("Project IDs match:", chatData.project_id === projectId);
-
-        // OPTIONAL: Validate chat belongs to this project
-        // Note: Commenting this out temporarily to debug the header issue
-        // You can uncomment after confirming the header shows properly
-        
-        if (chatData.project_id !== projectId) {
-          console.warn("⚠️ PROJECT MISMATCH!");
-          console.warn(`  Chat's project_id: "${chatData.project_id}"`);
-          console.warn(`  URL's project_id:  "${projectId}"`);
-          console.warn("  Loading chat anyway for debugging...");
-          
-          // Uncomment below to enforce project scoping:
-          // throw new Error("This chat does not belong to the current project");
-        }
-
-        console.log("✅ Chat validation passed");
-        setCurrentChatData(chatData);
+        toast.success("Chat loaded");
       } catch (err: any) {
         console.error("Failed to load chat:", err);
-        console.error("Error response:", err.response);
-        
-        // Set specific error message
-        let errorMessage = "Failed to load chat";
-        
-        if (err.response?.status === 404) {
-          errorMessage = "Chat not found";
-        } else if (err.message?.includes("does not belong")) {
-          errorMessage = err.message;
-        } else if (err.message?.includes("missing id")) {
-          errorMessage = "Invalid chat data received";
-        } else if (err.response?.data?.detail) {
-          errorMessage = err.response.data.detail;
-        }
-        
+        const errorMessage =
+          err?.message === "Invalid chat data received"
+            ? err.message
+            : "Failed to load chat. Please try again.";
         setChatLoadError(errorMessage);
         toast.error(errorMessage);
       } finally {
@@ -204,22 +298,18 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
     loadChat();
   }, [userId, chatId, projectId, getToken]);
 
-  // Loading state
   if (isLoadingChatData) {
     return <LoadingSpinner message="Loading chat..." />;
   }
 
-  // Error state - show if we tried to load but failed
-  if (chatLoadError || (!currentChatData && !isLoadingChatData)) {
+  if (chatLoadError || !currentChatData) {
     return (
-      <NotFound 
-        message={chatLoadError || "Chat not found"} 
-        description="This chat may have been deleted or you don't have access to it."
+      <NotFound
+        message={chatLoadError || "Chat not found"}
       />
     );
   }
 
-  // Success state - we have chat data
   return (
     <>
       <ChatInterface
@@ -228,6 +318,9 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
         onSendMessage={handleSendMessage}
         onFeedback={handleFeedbackOpen}
         isLoading={isMessageSending}
+        isStreaming={isStreaming}
+        streamingMessage={streamingMessage || undefined}
+        agentStatus={agentStatus || undefined}
         error={sendMessageError}
         onDismissError={() => setSendMessageError(null)}
       />

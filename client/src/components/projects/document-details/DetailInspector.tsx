@@ -1,14 +1,20 @@
 import { useState, useEffect } from "react";
 import { Eye } from "lucide-react";
+import { ProjectDocument } from "@/lib/types";
 
 interface DetailInspectorProps {
   selectedChunk: any;
   isProcessingComplete: boolean;
+  document?: ProjectDocument; // optional to keep compatibility with older call sites
+  onSelectChunk?: (chunk: any) => void; // optional, currently unused
 }
 
 export function DetailInspector({
   selectedChunk,
   isProcessingComplete,
+  // These props are accepted for compatibility but not currently used
+  document: _document,
+  onSelectChunk: _onSelectChunk,
 }: DetailInspectorProps) {
   const [detailTab, setDetailTab] = useState<"summary" | "original">("summary");
 
