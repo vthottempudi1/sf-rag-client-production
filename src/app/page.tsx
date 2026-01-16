@@ -12,7 +12,7 @@ export default async function HomePage() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Harish's 6 Figure RAG Course</h1>
+        <h1 className="text-4xl font-bold mb-4">Welcome to NextGenSoft RAG Project</h1>
         <p className="mb-6">Please sign in to continue</p>
         <a href="/sign-in" className="text-blue-600 hover:underline">Sign In</a>
       </div>
