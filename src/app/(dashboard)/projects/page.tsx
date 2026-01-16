@@ -44,12 +44,22 @@ function ProjectsPage() {
     try {
       setLoading(true);
       const token = await getToken();
+      if (!token) {
+        setProjects([]);
+        return;
+      }
       const result = await apiClient.get("/api/projects/", token);
-      const { data } = result || {};
-      setProjects(data);
+      const rawData = (result as any)?.data;
+      const projectsData = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData?.data)
+          ? rawData.data
+          : [];
+      setProjects(projectsData);
     } catch (err) {
       setError(err);
       toast.error("Failed to load projects");
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -112,7 +122,7 @@ function ProjectsPage() {
     }
   }, [userId]);
 
-  const filteredProjects = projects.filter(
+  const filteredProjects = (projects || []).filter(
     (project) =>
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase())

@@ -19,16 +19,40 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    token?: string
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
+    const normalizedHeaders: Record<string, string> = {};
+    const incoming = options.headers;
+
+    if (incoming instanceof Headers) {
+      incoming.forEach((value, key) => {
+        normalizedHeaders[key] = value;
+      });
+    } else if (Array.isArray(incoming)) {
+      incoming.forEach(([key, value]) => {
+        normalizedHeaders[key] = value as string;
+      });
+    } else if (incoming && typeof incoming === "object") {
+      Object.entries(incoming).forEach(([key, value]) => {
+        normalizedHeaders[key] = String(value);
+      });
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...normalizedHeaders,
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
       ...options,
+      headers,
+      credentials: "include",
     };
 
     try {
@@ -54,26 +78,26 @@ class ApiClient {
     }
   }
 
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "GET" }, token);
   }
 
-  async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: unknown, token?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(body),
-    });
+    }, token);
   }
 
-  async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body?: unknown, token?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(body),
-    });
+    }, token);
   }
 
-  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "DELETE" }, token);
   }
 }
 
