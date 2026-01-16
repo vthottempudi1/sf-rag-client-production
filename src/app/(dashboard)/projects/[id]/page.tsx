@@ -100,7 +100,7 @@ function ProjectPage({ params }: ProjectPageProps) {
         const ids = validDocuments.map((doc: any) => doc.id);
         const uniqueIds = new Set(ids);
         if (ids.length !== uniqueIds.size) {
-          console.error("⚠️ WARNING: Duplicate document IDs detected!", validDocuments);
+          console.error("WARNING: Duplicate document IDs detected!", validDocuments);
         }
 
         const projectData = (projectRes as any)?.data?.data ?? (projectRes as any)?.data ?? null;
@@ -139,13 +139,19 @@ function ProjectPage({ params }: ProjectPageProps) {
       try {
         const token = await getToken();
         const documentsRes = await apiClient.get(
-          `/api/projects/${projectId}/files`, 
+          `/api/projects/${projectId}/files`,
           token
         );
+        const rawDocs = (documentsRes as any)?.data;
+        const docs = Array.isArray(rawDocs?.data)
+          ? rawDocs.data
+          : Array.isArray(rawDocs)
+            ? rawDocs
+            : [];
 
         setData((prev) => ({
           ...prev,
-          documents: documentsRes.data || [],
+          documents: docs,
         }));
       } catch (err) {
         console.error("Error polling document statuses:", err);
@@ -163,12 +169,19 @@ function ProjectPage({ params }: ProjectPageProps) {
 
       const chatNumber = Date.now() % 10000;
 
-      const result = await apiClient.post("/api/chats", {
-        title: `Chat #${chatNumber}`,
-        project_id: projectId,
-      }, token);
-
-      const savedChat = result.data;
+      const result = await apiClient.post(
+        "/api/chats",
+        {
+          title: `Chat #${chatNumber}`,
+          project_id: projectId,
+        },
+        token
+      );
+      if ((result as any)?.error) {
+        throw new Error((result as any).error);
+      }
+      const rawChat = (result as any)?.data;
+      const savedChat = rawChat?.data ?? rawChat;
 
       if (savedChat && savedChat.id) {
         router.push(`/projects/${projectId}/chats/${savedChat.id}`);
@@ -248,15 +261,18 @@ function ProjectPage({ params }: ProjectPageProps) {
         console.log(`Starting upload for: ${file.name}`);
         
         // Step1: Get presigned URL
-        const uploadData = await apiClient.post(
-          `/api/projects/${projectId}/files/upload-url`, 
-          {
-            filename: file.name,
-            file_size: file.size,
-            file_type: file.type,
-          }, 
-          token
-        );
+      const uploadData = await apiClient.post(
+        `/api/projects/${projectId}/files/upload-url`, 
+        {
+          filename: file.name,
+          file_size: file.size,
+          file_type: file.type,
+        }, 
+        token
+      );
+      if ((uploadData as any)?.error) {
+        throw new Error((uploadData as any).error);
+      }
         
         console.log(`Upload URL response for ${file.name}:`, uploadData);
         
@@ -276,13 +292,16 @@ function ProjectPage({ params }: ProjectPageProps) {
         console.log(`S3 upload complete for ${file.name}, confirming...`);
 
         // Step3: Confirm upload to the server 
-        const confirmResponse = await apiClient.post(
-          `/api/projects/${projectId}/files/confirm`,
-          {
-            s3_key,
-          },
-          token
-        );
+      const confirmResponse = await apiClient.post(
+        `/api/projects/${projectId}/files/confirm`,
+        {
+          s3_key,
+        },
+        token
+      );
+      if ((confirmResponse as any)?.error) {
+        throw new Error((confirmResponse as any).error);
+      }
         
         console.log(`Confirm response for ${file.name}:`, confirmResponse);
 
@@ -291,7 +310,7 @@ function ProjectPage({ params }: ProjectPageProps) {
         
         if (documentData && documentData.id) {
           uploadedDocuments.push(documentData);
-          console.log(`✓ Successfully uploaded: ${file.name}`);
+          console.log(`Successfully uploaded: ${file.name}`);
         } else {
           console.error(`Document data missing ID for ${file.name}:`, documentData);
           failedUploads++;
@@ -363,6 +382,9 @@ function ProjectPage({ params }: ProjectPageProps) {
         { url },
         token
       );
+      if ((result as any)?.error) {
+        throw new Error((result as any).error);
+      }
 
       const newDocument = result.data;
       
