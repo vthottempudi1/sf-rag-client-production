@@ -99,6 +99,18 @@ class ApiClient {
   async delete<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: "DELETE" }, token);
   }
+
+  async uploadToS3(url: string, file: File): Promise<Response> {
+    const response = await fetch(url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+    if (!response.ok) {
+      throw new Error(`S3 Upload Error: ${response.status}`);
+    }
+    return response;
+  }
 }
 
 // Export a singleton instance

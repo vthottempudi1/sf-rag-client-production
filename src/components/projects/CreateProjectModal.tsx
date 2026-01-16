@@ -59,10 +59,15 @@ export function CreateProjectModal({
               <Sparkles size={20} className="text-blue-400" />
             </div>
             <div>
-              <h2 className="text-lg font-medium text-white">Create new project</h2>
-              <p className="text-sm text-gray-400">Start organizing your knowledge</p>
+              <h2 className="text-lg font-medium text-white">
+                Create new project
+              </h2>
+              <p className="text-sm text-gray-400">
+                Start organizing your knowledge
+              </p>
             </div>
           </div>
+
           <button
             onClick={handleClose}
             disabled={isLoading}
@@ -71,11 +76,15 @@ export function CreateProjectModal({
             <X size={20} />
           </button>
         </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Project Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-3">
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-300 mb-3"
+            >
               Project name
             </label>
             <input
@@ -90,9 +99,13 @@ export function CreateProjectModal({
               autoFocus
             />
           </div>
+
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-3">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-300 mb-3"
+            >
               Description
               <span className="text-gray-500 font-normal ml-1">(optional)</span>
             </label>
@@ -106,6 +119,7 @@ export function CreateProjectModal({
               className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 disabled:opacity-50 text-white placeholder-gray-500 resize-none transition-all duration-200"
             />
           </div>
+
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button
@@ -116,6 +130,7 @@ export function CreateProjectModal({
             >
               Cancel
             </button>
+
             <button
               type="submit"
               disabled={!name.trim() || isLoading}
@@ -135,10 +150,12 @@ export function CreateProjectModal({
             </button>
           </div>
         </form>
+
         {/* Footer hint */}
         <div className="px-6 pb-6">
           <p className="text-xs text-gray-500 text-center">
-            You can add documents and start chatting once your project is created
+            You can add documents and start chatting once your project is
+            created
           </p>
         </div>
       </div>
