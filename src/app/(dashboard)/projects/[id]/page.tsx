@@ -62,7 +62,7 @@ function ProjectPage({ params }: ProjectPageProps) {
 
   useEffect(() => {
     const loadAllData = async () => {
-      if (!userId) return;
+      if (!userId || !projectId) return;
 
       try {
         setLoading(true);
@@ -125,6 +125,9 @@ function ProjectPage({ params }: ProjectPageProps) {
   }, [userId, projectId]);
 
   useEffect(() => {
+    if (!projectId) {
+      return;
+    }
     const hasProcessingDocuments = data.documents.some(
       (doc) =>
         doc.processing_status &&
@@ -163,6 +166,10 @@ function ProjectPage({ params }: ProjectPageProps) {
 
   //   Chat-related methods
   const handleCreateNewChat = async () => {
+    if (!projectId) {
+      toast.error("Missing project ID.");
+      return;
+    }
     try {
       setIsCreatingChat(true);
       const token = await getToken();
@@ -201,7 +208,7 @@ function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const handleDeleteChat = async (chatId: string) => {
-    if (!userId) return;
+    if (!userId || !projectId) return;
 
     try {
       const token = await getToken();
@@ -228,12 +235,15 @@ function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const handleChatClick = (chatId: string) => {
+    if (!projectId) {
+      return;
+    }
     router.push(`/projects/${projectId}/chats/${chatId}`);
   };
 
   //   Document-related methods
   const handleDocumentUpload = async (files: File[]) => {
-    if (!userId) {
+    if (!userId || !projectId) {
       toast.error("Please sign in to upload documents");
       return;
     }
@@ -352,7 +362,7 @@ function ProjectPage({ params }: ProjectPageProps) {
 
   
   const handleDocumentDelete = async (documentId: string) => {
-    if (!userId) return;
+    if (!userId || !projectId) return;
     
     try {
       const token = await getToken();
@@ -372,7 +382,7 @@ function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const handleUrlAdd = async (url: string) => {
-    if (!userId) return
+    if (!userId || !projectId) return
 
     try {
       const token = await getToken();
@@ -432,7 +442,7 @@ function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const handlePublishSettings = async () => {
-    if(!userId || !data.settings) {
+    if(!userId || !data.settings || !projectId) {
       toast.error("Cannot update settings. User not authenticated or settings missing.");
       return;
     }
