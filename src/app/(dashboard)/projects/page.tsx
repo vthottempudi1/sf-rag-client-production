@@ -123,25 +123,61 @@ function ProjectsPage() {
   }
 
   return (
-    <div>
-      <ProjectsGrid
-        projects={filteredProjects}
-        loading={loading}
-        error={error}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onProjectClick={handleProjectClick}
-        onCreateProject={handleOpenModal}
-        onDeleteProject={handleDeleteProject}
-      />
-      <CreateProjectModal
-        isOpen={showCreateModal}
-        onClose={handleCloseModal}
-        onCreateProject={handleCreateProject}
-        isLoading={isCreating}
-      />
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1a1b1f,_#0b0b0c_55%)] text-white">
+      <div className="flex min-h-screen">
+        <aside className="hidden w-64 flex-col border-r border-white/10 bg-gradient-to-b from-[#14161a] via-[#101216] to-[#0b0b0c] md:flex">
+          <div className="px-6 pb-6 pt-8 text-lg font-semibold tracking-wide">
+            NextgenSoft
+          </div>
+          <nav className="flex flex-1 flex-col gap-2 px-4">
+            <button className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-left text-sm text-white/90 shadow-sm transition hover:bg-white/10" onClick={handleOpenModal}>
+              New project
+            </button>
+            <button className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-left text-sm font-medium text-white">
+              Projects
+            </button>
+          </nav>
+          <div className="px-4 pb-8 pt-6 text-xs text-white/40">
+            Workspace settings
+          </div>
+        </aside>
+        <main className="flex flex-1 flex-col">
+          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 px-6 py-6 md:px-10">
+            <div>
+              <h1 className="text-2xl font-semibold">Projects</h1>
+              <p className="text-sm text-white/60">{filteredProjects.length} projects</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-white/20" onClick={handleOpenModal}>
+                <span className="rounded-full bg-black/10 px-2 py-0.5 text-xs font-semibold text-black">
+                  +
+                </span>
+                Create new
+              </button>
+            </div>
+          </header>
+          <section className="flex-1">
+            <ProjectsGrid
+              projects={filteredProjects}
+              loading={loading}
+              error={error}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              onProjectClick={handleProjectClick}
+              onCreateProject={handleOpenModal}
+              onDeleteProject={handleDeleteProject}
+            />
+          </section>
+        </main>
+        <CreateProjectModal
+          isOpen={showCreateModal}
+          onClose={handleCloseModal}
+          onCreateProject={handleCreateProject}
+          isLoading={isCreating}
+        />
+      </div>
     </div>
   );
 }
