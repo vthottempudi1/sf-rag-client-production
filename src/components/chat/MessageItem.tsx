@@ -85,8 +85,10 @@ export function MessageItem({ message, onFeedback }: MessageItemProps) {
                     <ol className="mt-2 list-decimal space-y-1 pl-5" {...props} />
                   ),
                   li: (props) => <li className={mutedClass} {...props} />,
-                  strong: (props) => <strong className={textClass} {...props} />,
-                  em: (props) => <em className={mutedClass} {...props} />,
+                  strong: (props) => (
+                    <strong className={`font-semibold ${textClass}`} {...props} />
+                  ),
+                  em: (props) => <em className={`italic ${mutedClass}`} {...props} />,
                   a: (props) => (
                     <a
                       className="text-blue-400 underline underline-offset-4 hover:text-blue-300"
