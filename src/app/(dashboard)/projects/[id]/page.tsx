@@ -396,7 +396,7 @@ function ProjectPage({ params }: ProjectPageProps) {
         throw new Error((result as any).error);
       }
 
-      const newDocument = result.data;
+      const newDocument = result.data?.data ?? result.data;
       
       // Update local state
       setData((prev) => ({
