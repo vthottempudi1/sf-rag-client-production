@@ -65,6 +65,7 @@ const AGENT_MODE_OPTIONS = [
 
 // Utility functions
 const formatFileSize = (bytes: number) => {
+  if (!Number.isFinite(bytes)) return "Website";
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -73,8 +74,10 @@ const formatFileSize = (bytes: number) => {
 };
 
 const formatTimeAgo = (dateString: string) => {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) return "Just now";
   const diffInHours = Math.floor(
-    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60)
+    (Date.now() - parsed.getTime()) / (1000 * 60 * 60)
   );
   if (diffInHours < 1) return "Just now";
   if (diffInHours < 24) return `${diffInHours}h ago`;
@@ -100,12 +103,12 @@ const getDocumentIcon = (doc: ProjectDocument) => {
 };
 
 const getDisplayName = (doc: ProjectDocument) => {
-  if (!doc.source_url) return doc.filename;
+  if (!doc.source_url) return doc.filename || "Website";
   try {
     const url = new URL(doc.source_url);
     return `${url.hostname}${url.pathname}`;
   } catch {
-    return doc.source_url;
+    return doc.source_url || "Website";
   }
 };
 
