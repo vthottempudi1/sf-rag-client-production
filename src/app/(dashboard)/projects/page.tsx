@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut, UserButton, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { ProjectsGrid } from "@/components/projects/ProjectsGrid";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
@@ -148,8 +148,23 @@ function ProjectsPage() {
               Projects
             </button>
           </nav>
-          <div className="px-4 pb-8 pt-6 text-xs text-white/40">
+          <div className="mt-auto px-4 pb-6 pt-6 text-xs text-white/40">
             Workspace settings
+          </div>
+          <div className="flex items-center justify-between border-t border-white/10 px-4 py-4">
+            <SignedIn>
+              <div className="flex items-center gap-3">
+                <UserButton afterSignOutUrl="/sign-in" />
+                <span className="text-xs text-white/70">Signed in</span>
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:bg-white/10">
+                  Sign in
+                </button>
+              </SignInButton>
+            </SignedOut>
           </div>
         </aside>
         <main className="flex flex-1 flex-col">
