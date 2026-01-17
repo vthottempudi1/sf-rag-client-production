@@ -54,8 +54,12 @@ function ProjectsPage () {
       setLoading(true);
 
       const token = await getToken();
-      const result = await apiClient.get("/api/projects", token ?? undefined)
-      
+      if (!token) {
+        setProjects([]);
+        return;
+      }
+      const result = await apiClient.get("/api/projects", token);
+
       // Handle multiple possible response shapes
       // - { data: [...] }
       // - { message: "...", data: [...] }
@@ -68,14 +72,13 @@ function ProjectsPage () {
           : Array.isArray((result as any))
             ? (result as any)
             : [];
-      
+
       // Filter out invalid projects without IDs
-      const validProjects = Array.isArray(projectsData) 
+      const validProjects = Array.isArray(projectsData)
         ? projectsData.filter((p: any) => p && p.id)
         : [];
-      
-      setProjects(validProjects);
 
+      setProjects(validProjects);
     } catch (err) {
       console.error("Error loading projects:", err);
       toast.error("Failed to load projects.");
@@ -83,7 +86,6 @@ function ProjectsPage () {
     } finally {
       setLoading(false);
     }
-
   };
 
 
@@ -182,7 +184,7 @@ function ProjectsPage () {
     }
   }, [userId]);
 
-  const filteredProjects = projects.filter(
+  const filteredProjects = (projects || []).filter(
     (project) =>
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase()));
