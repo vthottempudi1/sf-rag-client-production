@@ -81,7 +81,7 @@ export function MessageList({
           </div>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="space-y-8">
             {displayMessages.map((message) => (
               <div key={message.id} className="group">

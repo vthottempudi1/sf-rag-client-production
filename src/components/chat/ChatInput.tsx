@@ -34,7 +34,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
 
   return (
     <div className="border-t border-gray-800 bg-[#1a1a1a] px-6 py-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <form onSubmit={handleSubmit} className="relative">
           <div className="relative flex items-end bg-[#252525] border border-gray-700 rounded-lg hover:border-gray-600 focus-within:border-gray-600 transition-colors">
             <textarea

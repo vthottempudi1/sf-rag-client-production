@@ -64,7 +64,7 @@ export function ChatInterface({
         {/* Header - Show if we have a chat OR projectId */}
         {(chat || projectId) && (
           <div className="border-b border-gray-800 bg-[#1a1a1a] sticky top-0 z-10">
-            <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="max-w-6xl mx-auto px-6 py-4">
               <div className="flex items-center gap-3">
                 {/* Chat Icon */}
                 <div className="w-7 h-7 bg-[#252525] border border-gray-700 rounded-lg flex items-center justify-center">
