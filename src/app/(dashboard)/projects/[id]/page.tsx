@@ -4,7 +4,7 @@ import React, { use, useState, useEffect } from "react";
 import { ConversationsList } from "@/components/projects/ConversationsList";
 import { KnowledgeBaseSidebar } from "@/components/projects/KnowledgeBaseSidebar";
 import { FileDetailsModal } from "@/components/projects/FileDetailsModal";
-import { useAuth } from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut, UserButton, useAuth } from "@clerk/nextjs";
 import { apiClient } from "@/lib/api";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { NotFound } from "@/components/ui/NotFound";
@@ -481,32 +481,71 @@ function ProjectPage({ params }: ProjectPageProps) {
 
   return (
     <>
-      <div className="flex h-screen bg-[#0d1117] gap-4 p-4">
-        <ConversationsList
-          project={data.project}
-          conversations={data.chats}
-          error={error}
-          loading={isCreatingChat}
-          onCreateNewChat={handleCreateNewChat}
-          onChatClick={handleChatClick}
-          onDeleteChat={handleDeleteChat}
-        />
+      <div className="flex min-h-screen bg-[#0d1117]">
+        <aside className="hidden w-64 flex-col border-r border-white/10 bg-gradient-to-b from-[#14161a] via-[#101216] to-[#0b0b0c] md:flex">
+          <div className="px-6 pb-6 pt-8 text-lg font-semibold tracking-wide">
+            NextgenSoft
+          </div>
+          <nav className="flex flex-1 flex-col gap-2 px-4">
+            <button
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-left text-sm text-white/90 shadow-sm transition hover:bg-white/10"
+              onClick={() => (window.location.href = "/projects")}
+            >
+              New project
+            </button>
+            <button
+              className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-left text-sm font-medium text-white"
+              onClick={() => (window.location.href = "/projects")}
+            >
+              Projects
+            </button>
+          </nav>
+          <div className="mt-auto px-4 pb-6 pt-6 text-xs text-white/40">
+            Workspace settings
+          </div>
+          <div className="flex items-center justify-between border-t border-white/10 px-4 py-4">
+            <SignedIn>
+              <div className="flex items-center gap-3">
+                <UserButton afterSignOutUrl="/sign-in" />
+                <span className="text-xs text-white/70">Signed in</span>
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:bg-white/10">
+                  Sign in
+                </button>
+              </SignInButton>
+            </SignedOut>
+          </div>
+        </aside>
+        <main className="flex min-h-screen flex-1 gap-4 p-4">
+          <ConversationsList
+            project={data.project}
+            conversations={data.chats}
+            error={error}
+            loading={isCreatingChat}
+            onCreateNewChat={handleCreateNewChat}
+            onChatClick={handleChatClick}
+            onDeleteChat={handleDeleteChat}
+          />
 
-        {/* KnowledgeBase Sidebar */}
-        <KnowledgeBaseSidebar
-          activeTab={activeTab}
-          onSetActiveTab={setActiveTab}
-          projectDocuments={data.documents}
-          onDocumentUpload={handleDocumentUpload}
-          onDocumentDelete={handleDocumentDelete}
-          onOpenDocument={handleOpenDocument}
-          onUrlAdd={handleUrlAdd}
-          projectSettings={data.settings}
-          settingsError={null}
-          settingsLoading={false}
-          onUpdateSettings={handleDraftSettings}
-          onApplySettings={handlePublishSettings}
-        />
+          {/* KnowledgeBase Sidebar */}
+          <KnowledgeBaseSidebar
+            activeTab={activeTab}
+            onSetActiveTab={setActiveTab}
+            projectDocuments={data.documents}
+            onDocumentUpload={handleDocumentUpload}
+            onDocumentDelete={handleDocumentDelete}
+            onOpenDocument={handleOpenDocument}
+            onUrlAdd={handleUrlAdd}
+            projectSettings={data.settings}
+            settingsError={null}
+            settingsLoading={false}
+            onUpdateSettings={handleDraftSettings}
+            onApplySettings={handlePublishSettings}
+          />
+        </main>
       </div>
       {selectedDocument && (
         <FileDetailsModal
