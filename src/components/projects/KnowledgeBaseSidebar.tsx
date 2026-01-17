@@ -268,6 +268,12 @@ export function KnowledgeBaseSidebar({
         [".docx"],
       "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         [".pptx"],
+      "text/csv": [".csv"],
+      "application/csv": [".csv"],
+      "application/vnd.ms-excel": [".csv", ".xls"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
       "text/plain": [".txt"],
       "text/markdown": [".md"],
     },
@@ -421,7 +427,7 @@ export function KnowledgeBaseSidebar({
                     <p className="text-xs text-gray-400 mt-1">
                       {isDragActive
                         ? "Release to upload"
-                        : "PDF, DOCX, PPT, MD, TXT • Max 50GB"}
+                        : "PDF, DOCX, PPT, CSV, XLSX, MD, TXT • Max 50GB"}
                     </p>
                   </div>
                 </div>
