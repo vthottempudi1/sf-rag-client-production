@@ -1,4 +1,6 @@
 import { ThumbsUp, ThumbsDown, User, Bot } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -24,6 +26,12 @@ export function MessageItem({ message, onFeedback }: MessageItemProps) {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const headingClass = isUser ? "text-green-700" : "text-green-400";
+  const textClass = isUser ? "text-gray-900" : "text-gray-200";
+  const mutedClass = isUser ? "text-gray-700" : "text-gray-300";
+  const codeClass = isUser
+    ? "bg-gray-100 text-gray-900"
+    : "bg-[#111827] text-gray-100";
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} group`}>
@@ -45,9 +53,76 @@ export function MessageItem({ message, onFeedback }: MessageItemProps) {
                 : "bg-[#202020] text-gray-200 border-gray-800 hover:border-gray-700"
             }`}
           >
-            <p className="whitespace-pre-wrap leading-relaxed text-sm">
-              {message.content}
-            </p>
+            <div className={`text-sm leading-relaxed ${textClass}`}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: (props) => (
+                    <h1
+                      className={`mt-4 text-lg font-semibold ${headingClass}`}
+                      {...props}
+                    />
+                  ),
+                  h2: (props) => (
+                    <h2
+                      className={`mt-4 text-base font-semibold ${headingClass}`}
+                      {...props}
+                    />
+                  ),
+                  h3: (props) => (
+                    <h3
+                      className={`mt-3 text-sm font-semibold ${headingClass}`}
+                      {...props}
+                    />
+                  ),
+                  p: (props) => (
+                    <p className={`mt-2 whitespace-pre-wrap ${textClass}`} {...props} />
+                  ),
+                  ul: (props) => (
+                    <ul className="mt-2 list-disc space-y-1 pl-5" {...props} />
+                  ),
+                  ol: (props) => (
+                    <ol className="mt-2 list-decimal space-y-1 pl-5" {...props} />
+                  ),
+                  li: (props) => <li className={mutedClass} {...props} />,
+                  strong: (props) => (
+                    <strong className={`font-semibold ${textClass}`} {...props} />
+                  ),
+                  em: (props) => <em className={`italic ${mutedClass}`} {...props} />,
+                  a: (props) => (
+                    <a
+                      className="text-blue-400 underline underline-offset-4 hover:text-blue-300"
+                      target="_blank"
+                      rel="noreferrer"
+                      {...props}
+                    />
+                  ),
+                  code: ({ inline, className, children, ...props }) =>
+                    inline ? (
+                      <code
+                        className={`rounded px-1.5 py-0.5 text-xs ${codeClass}`}
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    ) : (
+                      <pre className={`mt-3 overflow-x-auto rounded-lg p-3 text-xs ${codeClass}`}>
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      </pre>
+                    ),
+                  blockquote: (props) => (
+                    <blockquote
+                      className="mt-3 border-l-2 border-gray-600 pl-3 text-sm text-gray-400"
+                      {...props}
+                    />
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
           </div>
 
           {/* User Avatar - Only show for user */}
