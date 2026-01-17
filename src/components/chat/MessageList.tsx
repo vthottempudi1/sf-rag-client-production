@@ -10,6 +10,8 @@ interface Message {
   chat_id: string;
   clerk_id: string;
   citations?: Array<{
+    document_id?: string;
+    chunk_id?: string;
     filename: string;
     page: number;
   }>;
@@ -22,6 +24,12 @@ interface MessageListProps {
   isStreaming?: boolean;
   agentStatus?: string;
   onFeedback?: (messageId: string, type: "like" | "dislike") => void;
+  onOpenCitation?: (citation: {
+    document_id?: string;
+    chunk_id?: string;
+    filename: string;
+    page: number;
+  }) => void;
 }
 
 export function MessageList({
@@ -31,6 +39,7 @@ export function MessageList({
   isStreaming = false,
   agentStatus = "",
   onFeedback,
+  onOpenCitation,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -104,9 +113,11 @@ export function MessageList({
 
                         <div className="grid gap-2">
                           {message.citations.map((citation, citationIndex) => (
-                            <div
+                            <button
                               key={citationIndex}
+                              type="button"
                               className="flex items-center gap-3 bg-[#252525] hover:bg-[#2a2a2a] rounded-lg px-3 py-2 border border-gray-700 hover:border-gray-600 transition-colors"
+                              onClick={() => onOpenCitation?.(citation)}
                             >
                               {/* Document Icon */}
                               <div className="flex-shrink-0 w-7 h-7 bg-[#2a2a2a] border border-gray-600 rounded-md flex items-center justify-center">
@@ -131,7 +142,7 @@ export function MessageList({
                                   </span>
                                 </div>
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       </div>

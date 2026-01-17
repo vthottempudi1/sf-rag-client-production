@@ -16,6 +16,7 @@ import { Modal } from "./document-details/Modal";
 
 interface FileDetailsModalProps {
   document: ProjectDocument;
+  initialChunkId?: string;
   onClose: () => void;
 }
 
@@ -57,7 +58,11 @@ const PIPELINE_STEPS = [
   },
 ];
 
-export function FileDetailsModal({ document: initialDocument, onClose }: FileDetailsModalProps) {
+export function FileDetailsModal({
+  document: initialDocument,
+  initialChunkId,
+  onClose,
+}: FileDetailsModalProps) {
   const [document, setDocument] = useState(initialDocument);
   const [activeTab, setActiveTab] = useState<string>(document.processing_status || "uploading");
   const { getToken, userId } = useAuth();
@@ -201,6 +206,15 @@ export function FileDetailsModal({ document: initialDocument, onClose }: FileDet
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isProcessingComplete]);
+
+  useEffect(() => {
+    if (!initialChunkId || chunks.length === 0) return;
+    const match = chunks.find((chunk) => chunk.id === initialChunkId);
+    if (match) {
+      setSelectedChunk(match);
+      setActiveTab("completed");
+    }
+  }, [initialChunkId, chunks]);
 
   useEffect(() => {
     if (document) {

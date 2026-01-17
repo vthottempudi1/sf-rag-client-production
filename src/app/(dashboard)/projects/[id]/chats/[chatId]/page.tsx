@@ -6,6 +6,8 @@ import { ChatInterface } from "@/components/chat/ChatInterface";
 import { ChatWithMessages } from "@/lib/types";
 import { apiClient } from "@/lib/api";
 import { MessageFeedbackModal } from "@/components/chat/MessageFeedbackModel";
+import { FileDetailsModal } from "@/components/projects/FileDetailsModal";
+import { ProjectDocument } from "@/lib/types";
 import toast from "react-hot-toast";
 import { NotFound } from "@/components/ui/NotFound";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -36,6 +38,10 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
   const [feedbackModal, setFeedbackModal] = useState<{
     messageId: string;
     type: "like" | "dislike";
+  } | null>(null);
+  const [citationModal, setCitationModal] = useState<{
+    document: ProjectDocument;
+    chunkId?: string;
   } | null>(null);
 
   const { getToken, userId } = useAuth();
@@ -239,6 +245,34 @@ const handleSendMessage = async (content: string) => {
     setFeedbackModal({ messageId, type });
   };
 
+  const handleOpenCitation = async (citation: {
+    document_id?: string;
+    chunk_id?: string;
+    filename: string;
+    page: number;
+  }) => {
+    if (!citation.document_id) {
+      toast.error("Missing document reference for this citation.");
+      return;
+    }
+    try {
+      const token = await getToken();
+      const response = await apiClient.get(
+        `/api/projects/${projectId}/files/${citation.document_id}`,
+        token ?? undefined
+      );
+      const rawDoc = (response as any)?.data;
+      const document = (rawDoc as any)?.data ?? rawDoc;
+      if (!document?.id) {
+        throw new Error("Invalid document data");
+      }
+      setCitationModal({ document, chunkId: citation.chunk_id });
+    } catch (err) {
+      console.error("Failed to open citation:", err);
+      toast.error("Failed to open citation.");
+    }
+  };
+
   const handleFeedbackSubmit = async (feedback: {
     rating: "like" | "dislike";
     comment?: string;
@@ -351,18 +385,19 @@ const handleSendMessage = async (content: string) => {
           </div>
         </aside>
         <main className="flex min-h-screen flex-1">
-          <ChatInterface
-            chat={currentChatData}
-            projectId={projectId}
-            onSendMessage={handleSendMessage}
-            onFeedback={handleFeedbackOpen}
-            isLoading={isMessageSending}
-            isStreaming={isStreaming}
-            streamingMessage={streamingMessage || undefined}
-            agentStatus={agentStatus || undefined}
-            error={sendMessageError}
-            onDismissError={() => setSendMessageError(null)}
-          />
+      <ChatInterface
+        chat={currentChatData}
+        projectId={projectId}
+        onSendMessage={handleSendMessage}
+        onFeedback={handleFeedbackOpen}
+        onOpenCitation={handleOpenCitation}
+        isLoading={isMessageSending}
+        isStreaming={isStreaming}
+        streamingMessage={streamingMessage || undefined}
+        agentStatus={agentStatus || undefined}
+        error={sendMessageError}
+        onDismissError={() => setSendMessageError(null)}
+      />
         </main>
       </div>
       <MessageFeedbackModal
@@ -371,6 +406,13 @@ const handleSendMessage = async (content: string) => {
         onSubmit={handleFeedbackSubmit}
         onClose={() => setFeedbackModal(null)}
       />
+      {citationModal && (
+        <FileDetailsModal
+          document={citationModal.document}
+          initialChunkId={citationModal.chunkId}
+          onClose={() => setCitationModal(null)}
+        />
+      )}
     </>
   );
 }
