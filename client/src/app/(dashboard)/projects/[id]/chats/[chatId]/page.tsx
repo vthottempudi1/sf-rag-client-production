@@ -3,12 +3,13 @@
 import { use, useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { ChatInterface } from "@/components/chat/ChatInterface";
-import { ChatWithMessages } from "@/lib/types";
+import { ChatWithMessages, ProjectDocument } from "@/lib/types";
 import { apiClient } from "@/lib/api";
 import { MessageFeedbackModal } from "@/components/chat/MessageFeedbackModel";
 import toast from "react-hot-toast";
 import { NotFound } from "@/components/ui/NotFound";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { FileDetailsModal } from "@/components/projects/FileDetailsModal";
 
 interface ProjectChatPageProps {
   params: Promise<{
@@ -36,6 +37,10 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
   const [feedbackModal, setFeedbackModal] = useState<{
     messageId: string;
     type: "like" | "dislike";
+  } | null>(null);
+  const [citationModal, setCitationModal] = useState<{
+    document: ProjectDocument;
+    initialChunkId?: string;
   } | null>(null);
 
   const { getToken, userId } = useAuth();
@@ -239,6 +244,41 @@ const handleSendMessage = async (content: string) => {
     setFeedbackModal({ messageId, type });
   };
 
+  const handleOpenCitation = async (citation: {
+    chunk_id?: string;
+    document_id?: string;
+    filename: string;
+    page: number;
+  }) => {
+    try {
+      if (!citation.chunk_id) {
+        toast.error("Invalid citation: missing chunk ID.");
+        return;
+      }
+      const token = await getToken();
+      const chunkRes = await apiClient.get(`/api/chunks/${citation.chunk_id}`, token ?? undefined);
+      const chunkData = (chunkRes as any)?.data?.data ?? (chunkRes as any)?.data ?? chunkRes;
+      const documentId = chunkData?.document_id;
+      if (!documentId) {
+        toast.error("Citation document not found.");
+        return;
+      }
+      const docRes = await apiClient.get(
+        `/api/projects/${projectId}/files/${documentId}`,
+        token ?? undefined
+      );
+      const docData = (docRes as any)?.data?.data ?? (docRes as any)?.data ?? docRes;
+      if (!docData?.id) {
+        toast.error("Citation document not found.");
+        return;
+      }
+      setCitationModal({ document: docData as ProjectDocument, initialChunkId: citation.chunk_id });
+    } catch (err) {
+      console.error("Failed to open citation:", err);
+      toast.error("Failed to open citation.");
+    }
+  };
+
   const handleFeedbackSubmit = async (feedback: {
     rating: "like" | "dislike";
     comment?: string;
@@ -317,6 +357,7 @@ const handleSendMessage = async (content: string) => {
         projectId={projectId}
         onSendMessage={handleSendMessage}
         onFeedback={handleFeedbackOpen}
+        onOpenCitation={handleOpenCitation}
         isLoading={isMessageSending}
         isStreaming={isStreaming}
         streamingMessage={streamingMessage || undefined}
@@ -324,6 +365,13 @@ const handleSendMessage = async (content: string) => {
         error={sendMessageError}
         onDismissError={() => setSendMessageError(null)}
       />
+      {citationModal && (
+        <FileDetailsModal
+          document={citationModal.document}
+          initialChunkId={citationModal.initialChunkId}
+          onClose={() => setCitationModal(null)}
+        />
+      )}
       <MessageFeedbackModal
         isOpen={!!feedbackModal}
         feedbackType={feedbackModal?.type}

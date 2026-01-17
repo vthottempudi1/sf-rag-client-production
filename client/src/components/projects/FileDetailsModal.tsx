@@ -17,6 +17,7 @@ import { Modal } from "./document-details/Modal";
 interface FileDetailsModalProps {
   document: ProjectDocument;
   onClose: () => void;
+  initialChunkId?: string;
 }
 
 const PIPELINE_STEPS = [
@@ -57,7 +58,11 @@ const PIPELINE_STEPS = [
   },
 ];
 
-export function FileDetailsModal({ document: initialDocument, onClose }: FileDetailsModalProps) {
+export function FileDetailsModal({
+  document: initialDocument,
+  onClose,
+  initialChunkId,
+}: FileDetailsModalProps) {
   const [document, setDocument] = useState(initialDocument);
   const [activeTab, setActiveTab] = useState<string>(document.processing_status || "uploading");
   const { getToken, userId } = useAuth();
@@ -194,6 +199,12 @@ export function FileDetailsModal({ document: initialDocument, onClose }: FileDet
     }
   }, [isProcessingComplete, document.id]);
 
+  useEffect(() => {
+    if (initialChunkId) {
+      setActiveTab("completed");
+    }
+  }, [initialChunkId]);
+
   // Load chunks when user navigates to "completed" tab after processing
   useEffect(() => {
     if (activeTab === "completed" && !chunksLoading && chunks.length === 0) {
@@ -201,6 +212,14 @@ export function FileDetailsModal({ document: initialDocument, onClose }: FileDet
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isProcessingComplete]);
+
+  useEffect(() => {
+    if (!initialChunkId || chunks.length === 0) return;
+    const matched = chunks.find((chunk) => chunk.id === initialChunkId);
+    if (matched) {
+      setSelectedChunk(matched);
+    }
+  }, [chunks, initialChunkId]);
 
   useEffect(() => {
     if (document) {

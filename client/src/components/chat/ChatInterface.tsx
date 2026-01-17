@@ -13,6 +13,8 @@ interface Message {
   chat_id: string;
   clerk_id: string;
   citations?: Array<{
+    chunk_id?: string;
+    document_id?: string;
     filename: string;
     page: number;
   }>;
@@ -39,6 +41,12 @@ interface ChatInterfaceProps {
   isStreaming?: boolean;
   agentStatus?: string;
   onFeedback?: (messageId: string, type: "like" | "dislike") => void;
+  onOpenCitation?: (citation: {
+    chunk_id?: string;
+    document_id?: string;
+    filename: string;
+    page: number;
+  }) => void;
 }
 
 export function ChatInterface({
@@ -53,6 +61,7 @@ export function ChatInterface({
   isStreaming,
   agentStatus,
   onFeedback,
+  onOpenCitation,
 }: ChatInterfaceProps) {
   const handleSendMessage = async (content: string) => {
     await onSendMessage(content);
@@ -107,6 +116,7 @@ export function ChatInterface({
               isStreaming={isStreaming}
               agentStatus={agentStatus}
               onFeedback={onFeedback}
+              onOpenCitation={onOpenCitation}
             />
             <ChatInput
               onSendMessage={handleSendMessage}
