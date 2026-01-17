@@ -13,7 +13,7 @@ interface Project {
   id: string;
   name: string;
   description: string;
-  created_at: string;
+  created_at?: string;
   clerk_id: string;
 }
 
@@ -75,8 +75,15 @@ function ProjectsPage() {
         { name, description },
         token
       );
-      const savedProject = result?.data || {};
-      setProjects((prev) => [savedProject, ...prev]);
+      const rawProject = (result as any)?.data;
+      const savedProject = (rawProject as any)?.data ?? rawProject ?? {};
+      const normalizedProject = {
+        ...savedProject,
+        name: savedProject?.name || name,
+        description: savedProject?.description || description,
+        created_at: savedProject?.created_at || new Date().toISOString(),
+      };
+      setProjects((prev) => [normalizedProject, ...prev]);
       setShowCreateModal(false);
       toast.success("Project created successfully!");
     } catch (err) {

@@ -29,6 +29,12 @@ export function ProjectsGrid({
   onDeleteProject,
 }: ProjectsGridProps) {
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const formatProjectDate = (dateValue?: string) => {
+    if (!dateValue) return "Just now";
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return "Just now";
+    return parsed.toLocaleDateString();
+  };
   const visibleProjects = normalizedQuery
     ? projects.filter((project) => {
         const name = (project?.name ?? "").toLowerCase();
@@ -190,10 +196,10 @@ export function ProjectsGrid({
                       {/* Project Info */}
                       <div className="space-y-2">
                         <h3 className="font-medium text-white text-base line-clamp-2 group-hover:text-gray-100 transition-colors">
-                          {project.name}
+                          {project?.name || "Untitled project"}
                         </h3>
 
-                        {project.description && (
+                        {project?.description && (
                           <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">
                             {project.description}
                           </p>
@@ -201,7 +207,7 @@ export function ProjectsGrid({
 
                         <div className="pt-2">
                           <span className="text-xs text-gray-500">
-                            {new Date(project.created_at).toLocaleDateString()}
+                            {formatProjectDate(project?.created_at)}
                           </span>
                         </div>
                       </div>
@@ -237,9 +243,9 @@ export function ProjectsGrid({
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-white truncate group-hover:text-gray-100 transition-colors">
-                          {project.name}
+                          {project?.name || "Untitled project"}
                         </h3>
-                        {project.description && (
+                        {project?.description && (
                           <p className="text-gray-400 text-sm truncate mt-1">
                             {project.description}
                           </p>
@@ -248,7 +254,7 @@ export function ProjectsGrid({
 
                       {/* Date */}
                       <div className="text-xs text-gray-500 flex-shrink-0 self-start">
-                        {new Date(project.created_at).toLocaleDateString()}
+                        {formatProjectDate(project?.created_at)}
                       </div>
 
                       {/* Delete Button */}
