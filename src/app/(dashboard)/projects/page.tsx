@@ -28,6 +28,13 @@ function ProjectsPage() {
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteProjectId, setInviteProjectId] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteStatus, setInviteStatus] = useState<{ type: "idle" | "error" | "success"; message?: string }>({
+    type: "idle",
+  });
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
 
   // Clerk : https://clerk.com/docs/nextjs/reference/hooks/use-auth
   const { getToken, userId } = useAuth();
@@ -123,6 +130,35 @@ function ProjectsPage() {
     setShowCreateModal(false);
   };
 
+  const submitInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!inviteProjectId || !inviteEmail) {
+      setInviteStatus({ type: "error", message: "Project ID and email are required." });
+      return;
+    }
+    setInviteSubmitting(true);
+    setInviteStatus({ type: "idle" });
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("You must be signed in to invite members.");
+      }
+      await apiClient.post(
+        `/api/projects/${inviteProjectId}/members`,
+        { email: inviteEmail, role: "viewer" },
+        token
+      );
+      setInviteStatus({ type: "success", message: "Invite sent. Member now has viewer access." });
+      setInviteEmail("");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to invite member.";
+      setInviteStatus({ type: "error", message });
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (userId) {
       loadProjects();
@@ -181,6 +217,15 @@ function ProjectsPage() {
               <p className="text-sm text-white/60">{filteredProjects.length} projects</p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+                onClick={() => {
+                  setInviteStatus({ type: "idle" });
+                  setInviteOpen(true);
+                }}
+              >
+                Invite member
+              </button>
               <button className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-white/20" onClick={handleOpenModal}>
                 <span className="rounded-full bg-black/10 px-2 py-0.5 text-xs font-semibold text-black">
                   +
@@ -211,6 +256,84 @@ function ProjectsPage() {
           isLoading={isCreating}
         />
       </div>
+
+      {inviteOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4 py-8">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0f1115] p-6 shadow-2xl shadow-black/60">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Invite member</h2>
+                <p className="mt-1 text-sm text-white/60">
+                  Members get viewer access and can chat on this project.
+                </p>
+              </div>
+              <button
+                onClick={() => setInviteOpen(false)}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/60 transition hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={submitInvite} className="mt-6 space-y-4">
+              <div>
+                <label className="text-xs uppercase tracking-[0.18em] text-white/40">Project ID</label>
+                <input
+                  value={inviteProjectId}
+                  onChange={(event) => setInviteProjectId(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:bg-white/10"
+                  placeholder="Paste project UUID"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-[0.18em] text-white/40">Member email</label>
+                <input
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:bg-white/10"
+                  placeholder="name@company.com"
+                  type="email"
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+                <span>Role</span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                  Viewer
+                </span>
+              </div>
+
+              {inviteStatus.type !== "idle" && (
+                <div
+                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                    inviteStatus.type === "success"
+                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+                      : "border-rose-400/30 bg-rose-400/10 text-rose-200"
+                  }`}
+                >
+                  {inviteStatus.message}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setInviteOpen(false)}
+                  className="rounded-full border border-white/15 bg-white/5 px-5 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={inviteSubmitting}
+                  className="rounded-full bg-white px-6 py-2 text-sm font-semibold text-black shadow-lg shadow-white/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {inviteSubmitting ? "Sending..." : "Send invite"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
