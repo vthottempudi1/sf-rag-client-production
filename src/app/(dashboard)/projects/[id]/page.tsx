@@ -243,6 +243,10 @@ function ProjectPage({ params }: ProjectPageProps) {
 
   //   Document-related methods
   const handleDocumentUpload = async (files: File[]) => {
+    if (!isOwner) {
+      toast.error("Viewer access: uploads are disabled.");
+      return;
+    }
     if (!userId || !projectId) {
       toast.error("Please sign in to upload documents");
       return;
@@ -362,6 +366,10 @@ function ProjectPage({ params }: ProjectPageProps) {
 
   
   const handleDocumentDelete = async (documentId: string) => {
+    if (!isOwner) {
+      toast.error("Viewer access: deletes are disabled.");
+      return;
+    }
     if (!userId || !projectId) return;
     
     try {
@@ -382,6 +390,10 @@ function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const handleUrlAdd = async (url: string) => {
+    if (!isOwner) {
+      toast.error("Viewer access: adding URLs is disabled.");
+      return;
+    }
     if (!userId || !projectId) return
 
     try {
@@ -442,6 +454,10 @@ function ProjectPage({ params }: ProjectPageProps) {
   };
 
   const handlePublishSettings = async () => {
+    if (!isOwner) {
+      toast.error("Viewer access: settings are read-only.");
+      return;
+    }
     if(!userId || !data.settings || !projectId) {
       toast.error("Cannot update settings. User not authenticated or settings missing.");
       return;
@@ -474,6 +490,8 @@ function ProjectPage({ params }: ProjectPageProps) {
   if(!data.project) {
     return <div>Error loading project: {error}</div>;
   }
+
+  const isOwner = data.project.clerk_id === userId || data.project.role === "owner";
 
   const selectedDocument = selectedDocumentId
     ? data.documents.find((doc) => doc.id == selectedDocumentId)
@@ -544,6 +562,8 @@ function ProjectPage({ params }: ProjectPageProps) {
             settingsLoading={false}
             onUpdateSettings={handleDraftSettings}
             onApplySettings={handlePublishSettings}
+            canManageDocuments={isOwner}
+            canManageSettings={isOwner}
           />
         </main>
       </div>

@@ -4,6 +4,7 @@ export interface Project {
   description: string;
   created_at: string;
   clerk_id: string;
+  role?: "owner" | "viewer";
 }
 
 export interface Chat {

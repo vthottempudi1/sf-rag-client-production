@@ -227,6 +227,8 @@ interface KnowledgeBaseSidebarProps {
   settingsLoading: boolean;
   onUpdateSettings: (updates: Partial<ProjectSettings>) => void;
   onApplySettings: () => void;
+  canManageDocuments: boolean;
+  canManageSettings: boolean;
 }
 
 export function KnowledgeBaseSidebar({
@@ -242,6 +244,8 @@ export function KnowledgeBaseSidebar({
   settingsLoading,
   onUpdateSettings,
   onApplySettings,
+  canManageDocuments,
+  canManageSettings,
 }: KnowledgeBaseSidebarProps) {
   const [urlInput, setUrlInput] = useState("");
   const [isAddingUrl, setIsAddingUrl] = useState(false);
@@ -262,6 +266,7 @@ export function KnowledgeBaseSidebar({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: onDocumentUpload,
+    disabled: !canManageDocuments,
     accept: {
       "application/pdf": [".pdf"],
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
@@ -325,6 +330,7 @@ export function KnowledgeBaseSidebar({
   const isMultiQuery = projectSettings?.rag_strategy?.includes("multi-query");
   const isHybrid = projectSettings?.rag_strategy?.includes("hybrid");
   const isEmbeddingLocked = projectDocuments.length > 0;
+  const settingsDisabled = settingsLoading || !canManageSettings;
 
   // Sort documents once
   const sortedDocuments = [...projectDocuments].sort(
@@ -403,15 +409,18 @@ export function KnowledgeBaseSidebar({
             {/* Upload Section */}
             <section className="space-y-6">
               <h3 className="text-sm font-medium text-gray-200">Add Sources</h3>
+              {!canManageDocuments && (
+                <StatusAlert type="error" message="Viewer access: uploads and deletes are disabled." />
+              )}
 
               {/* File Upload */}
               <div
                 {...getRootProps()}
-                className={`border border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                className={`border border-dashed rounded-lg p-6 text-center transition-colors ${
                   isDragActive
                     ? "border-gray-600 bg-[#252525]"
                     : "border-gray-700 hover:border-gray-600 bg-[#202020] hover:bg-[#252525]"
-                }`}
+                } ${canManageDocuments ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
               >
                 <input {...getInputProps()} />
                 <div className="flex flex-col items-center gap-3">
@@ -427,7 +436,7 @@ export function KnowledgeBaseSidebar({
                     <p className="text-xs text-gray-400 mt-1">
                       {isDragActive
                         ? "Release to upload"
-                        : "PDF, DOCX, PPT, CSV, XLSX, MD, TXT • Max 50GB"}
+                        : "PDF, DOCX, PPT, CSV, XLSX, MD, TXT - Max 50GB"}
                     </p>
                   </div>
                 </div>
@@ -451,15 +460,15 @@ export function KnowledgeBaseSidebar({
                     placeholder="Paste website URL"
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
-                    disabled={isAddingUrl}
+                    disabled={isAddingUrl || !canManageDocuments}
                     className="w-full pl-10 pr-4 py-3 bg-[#252525] border border-gray-700 rounded-lg focus:outline-none focus:border-gray-600 disabled:opacity-50 text-sm text-gray-100 placeholder:text-gray-400 transition-colors"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={!urlInput.trim() || isAddingUrl}
-                  className="w-full px-4 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-600 disabled:cursor-not-allowed text-black disabled:text-gray-400 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
+                  <button
+                    type="submit"
+                    disabled={!urlInput.trim() || isAddingUrl || !canManageDocuments}
+                    className="w-full px-4 py-3 bg-white hover:bg-gray-100 disabled:bg-gray-600 disabled:cursor-not-allowed text-black disabled:text-gray-400 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                  >
                   {isAddingUrl ? (
                     <>
                       <Loader2 size={14} className="animate-spin" />
@@ -515,16 +524,18 @@ export function KnowledgeBaseSidebar({
                             <h4 className="text-sm font-medium text-gray-200 truncate group-hover:text-white transition-colors">
                               {getDisplayName(doc)}
                             </h4>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDocumentDelete(doc.id);
-                              }}
-                              className="p-1 text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a] rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                              title="Delete source"
-                            >
-                              <Trash2 size={12} />
-                            </button>
+                            {canManageDocuments && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDocumentDelete(doc.id);
+                                }}
+                                className="p-1 text-gray-500 hover:text-gray-300 hover:bg-[#2a2a2a] rounded transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                                title="Delete source"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
                           </div>
                           <div className="flex items-center justify-between mt-1">
                             <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -588,7 +599,7 @@ export function KnowledgeBaseSidebar({
                     onChange={(e) =>
                       onUpdateSettings({ embedding_model: e.target.value })
                     }
-                    disabled={isEmbeddingLocked || settingsLoading}
+                    disabled={isEmbeddingLocked || settingsDisabled}
                     className="w-full p-3 bg-[#252525] border border-gray-700 rounded-lg focus:outline-none focus:border-gray-600 text-sm text-gray-100 disabled:opacity-50 transition-colors"
                   >
                     {EMBEDDING_MODELS.map((model) => (
@@ -632,7 +643,7 @@ export function KnowledgeBaseSidebar({
                             onChange={(e) =>
                               onUpdateSettings({ rag_strategy: e.target.value })
                             }
-                            disabled={settingsLoading}
+                            disabled={settingsDisabled}
                             className="w-4 h-4 text-gray-400 bg-transparent border-gray-500 focus:ring-0"
                           />
                           <div className="flex-1">
@@ -667,7 +678,7 @@ export function KnowledgeBaseSidebar({
                         chunks_per_search: parseInt(e.target.value),
                       })
                     }
-                    disabled={settingsLoading}
+                    disabled={settingsDisabled}
                   />
 
                   <SliderField
@@ -680,7 +691,7 @@ export function KnowledgeBaseSidebar({
                         final_context_size: parseInt(e.target.value),
                       })
                     }
-                    disabled={settingsLoading}
+                    disabled={settingsDisabled}
                   />
 
                   <SliderField
@@ -709,7 +720,7 @@ export function KnowledgeBaseSidebar({
                             number_of_queries: parseInt(e.target.value),
                           })
                         }
-                        disabled={settingsLoading}
+                        disabled={settingsDisabled}
                       />
                     </div>
                   )}
@@ -736,7 +747,7 @@ export function KnowledgeBaseSidebar({
                             keyword_weight: 1 - vectorWeight,
                           });
                         }}
-                        disabled={settingsLoading}
+                        disabled={settingsDisabled}
                         info={`Keyword weight: ${projectSettings.keyword_weight.toFixed(
                           1
                         )} (auto-calculated)`}
@@ -761,7 +772,7 @@ export function KnowledgeBaseSidebar({
                           reranking_enabled: e.target.checked,
                         })
                       }
-                      disabled={settingsLoading}
+                      disabled={settingsDisabled}
                       className="w-4 h-4 text-gray-400 bg-transparent border-gray-500 rounded focus:ring-0"
                     />
                     <span className="text-sm text-gray-200">
@@ -777,7 +788,7 @@ export function KnowledgeBaseSidebar({
                         onChange={(e) =>
                           onUpdateSettings({ reranking_model: e.target.value })
                         }
-                        disabled={settingsLoading}
+                        disabled={settingsDisabled}
                         className="w-full p-2 bg-[#252525] border border-gray-700 rounded-lg focus:outline-none focus:border-gray-600 text-sm text-gray-100 disabled:opacity-50 transition-colors"
                       >
                         {RERANKING_MODELS.map((model) => (
@@ -816,7 +827,7 @@ export function KnowledgeBaseSidebar({
                             onChange={(e) =>
                               onUpdateSettings({ agent_type: e.target.value })
                             }
-                            disabled={settingsLoading}
+                            disabled={settingsDisabled}
                             className="w-4 h-4 text-gray-400 bg-transparent border-gray-500 focus:ring-0"
                           />
                           <div className="flex-1">
@@ -863,7 +874,7 @@ export function KnowledgeBaseSidebar({
                 {/* Apply Settings Button */}
                 <button
                   onClick={onApplySettings}
-                  disabled={settingsLoading}
+                  disabled={settingsDisabled}
                   className="w-full bg-white hover:bg-gray-100 disabled:bg-gray-600 disabled:text-gray-400 text-black py-3 px-4 rounded-lg transition-all duration-200 font-medium flex items-center justify-center gap-2"
                 >
                   <Settings size={16} />
